@@ -1,21 +1,25 @@
 import pytest
-import random
-import string
+import requests
+from helpers.courier_generator import register_new_courier_and_return_login_password
+from data import urls
 
 @pytest.fixture
-def base_url():
-    return "https://qa-scooter.praktikum-services.ru/api/v1"
+def new_courier():
+    login, password, first_name = register_new_courier_and_return_login_password(urls.courier_url)
+    
+    payload = {"login": login, "password": password}
+    response = requests.post(f"{urls.courier_url}/login", json=payload)
+    courier_id = response.json().get("id")
+    
+    courier_data = {
+        "login": login,
+        "password": password,
+        "first_name": first_name,
+        "id": courier_id
+    }
+    
+    yield courier_data
 
-@pytest.fixture
-def courier_url(base_url):
-    return f"{base_url}/courier"
+    if courier_id:
+        requests.delete(f"{urls.courier_url}/{courier_id}")
 
-@pytest.fixture
-def orders_url(base_url):
-    return f"{base_url}/orders"
-
-@pytest.fixture
-def random_credentials():
-    def _generate(n=10):
-        return ''.join(random.choices(string.ascii_lowercase, k=n))
-    return _generate

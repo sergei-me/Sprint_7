@@ -1,6 +1,7 @@
 import allure
 import requests
 import pytest
+from data.urls import orders_url
 
 class TestCreateOrder:
 
@@ -12,7 +13,7 @@ class TestCreateOrder:
         None
     ])
 
-    def test_create_order_with_different_colors(self, orders_url, color):
+    def test_create_order_with_different_colors(self, color):
         
         with allure.step("Формируем тело запроса"):
             payload = {

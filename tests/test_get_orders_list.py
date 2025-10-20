@@ -1,11 +1,12 @@
 import allure
 import requests
+from data.urls import orders_url
 
 class TestOrderList:
 
     @allure.title("Получение списка заказов")
     @allure.description("Проверяем, что в ответе возвращается список заказов")
-    def test_get_orders_list(self, orders_url):
+    def test_get_orders_list(self):
 
         with allure.step("Отправляем GET-запрос на получение списка заказов"):
             response = requests.get(orders_url)
