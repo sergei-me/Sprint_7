@@ -3,26 +3,24 @@ import requests
 import pytest
 from helpers.courier_generator import register_new_courier_and_return_login_password
 from helpers.helpers import random_string, random_credentials
-from data.urls import courier_url
+from data.urls import courier_url, login_url
 
 class TestCreateCourier:
 
     @allure.title("Курьера можно создать")
-    def test_create_courier_success(self):
-        with allure.step("Регистрация нового курьера через API"):
-            login_pass = register_new_courier_and_return_login_password(courier_url)
-        
-        with allure.step("Проверка, что курьер успешно создан"):
-            assert login_pass, "Не удалось создать курьера через API"
+    def test_create_courier_success(self, new_courier):
+        with allure.step("Проверяем, что курьер успешно создан"):
+            assert new_courier["id"] is not None, "Курьер не был создан"
+            assert isinstance(new_courier["id"], int)
 
     @allure.title("Нельзя создать двух одинаковых курьеров")
-    def test_create_duplicate_courier(self):
-        with allure.step("Создание первого курьера"):
-            login_pass = register_new_courier_and_return_login_password(courier_url)
-            login, password, first_name = login_pass
-        
+    def test_create_duplicate_courier(self, new_courier):
         with allure.step("Попытка создать курьера с тем же логином"):
-            payload = {"login": login, "password": password, "firstName": first_name}
+            payload = {
+                "login": new_courier["login"],
+                "password": new_courier["password"],
+                "firstName": new_courier["first_name"]
+            }
             response = requests.post(courier_url, json=payload)
         
         with allure.step("Проверка кода ответа и текста ошибки"):
@@ -55,3 +53,11 @@ class TestCreateCourier:
             assert response.status_code == 201
             assert response.json() == {'ok': True}
 
+        with allure.step("Удаление созданного курьера после теста"):
+            login_response = requests.post(login_url, json={
+                "login": payload["login"],
+                "password": payload["password"]
+            })
+            courier_id = login_response.json().get("id")
+            if courier_id:
+                requests.delete(f"{courier_url}/{courier_id}")

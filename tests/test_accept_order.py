@@ -47,29 +47,33 @@ class TestAcceptOrder:
             assert response.status_code == 400, f"Ожидался 400, получен {response.status_code}"
             assert "Недостаточно данных для поиска" in response.json().get("message", "")
     
-    @allure.title("Ошибка при принятии заказа с неверным id курьера или заказа")
-    @pytest.mark.parametrize("invalid_id_type", ["courier_id", "order_id"])
-    def test_accept_order_with_invalid_id(self, new_courier, invalid_id_type):
+    @allure.title("Ошибка при принятии заказа с несуществующим id курьера")
+    def test_accept_order_with_invalid_courier_id(self, new_courier):
         courier_id = new_courier["id"]
 
         with allure.step("Создаем новый заказ"):
             create_response = requests.post(orders_url, json=order_payload)
             order_track = create_response.json()["track"]
-        
+
         with allure.step("Получаем id заказа по его track-номеру"):
             response_get = requests.get(f"{orders_url}/track?t={order_track}")
             order_id = response_get.json()["order"]["id"]
 
-        with allure.step("Формируем некорректный запрос принятия заказа"):
-            if invalid_id_type == "courier_id":
-                response = requests.put(f"{orders_url}/accept/{order_id}?courierId=999999")
-            else:
-                response = requests.put(f"{orders_url}/accept/999999?courierId={courier_id}")
+        with allure.step("Отправляем запрос с неверным id курьера"):
+            response = requests.put(f"{orders_url}/accept/{order_id}?courierId=999999")
 
-        with allure.step("Проверяем, что вернулся код 404 и корректное сообщение"):
+        with allure.step("Проверяем код и сообщение ошибки"):
             assert response.status_code == 404, f"Ожидался 404, получен {response.status_code}"
-            if invalid_id_type == "courier_id":
-                assert "Курьера с таким id не существует" in response.json().get("message", "")
-            else:
-                assert "Заказа с таким id не существует" in response.json().get("message", "")
+            assert "Курьера с таким id не существует" in response.json().get("message", "")
 
+
+    @allure.title("Ошибка при принятии заказа с несуществующим id заказа")
+    def test_accept_order_with_invalid_order_id(self, new_courier):
+        courier_id = new_courier["id"]
+
+        with allure.step("Отправляем запрос с неверным id заказа"):
+            response = requests.put(f"{orders_url}/accept/999999?courierId={courier_id}")
+
+        with allure.step("Проверяем код и сообщение ошибки"):
+            assert response.status_code == 404, f"Ожидался 404, получен {response.status_code}"
+            assert "Заказа с таким id не существует" in response.json().get("message", "")
